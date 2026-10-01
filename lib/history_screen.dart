@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class HistoryScreen extends StatelessWidget {
 
@@ -34,7 +35,7 @@ class HistoryScreen extends StatelessWidget {
                 child: ExpansionTile(
 
                     title: Text(
-                    day["date"],
+                    formatDate(day["date"]),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold,
                     ),
@@ -59,7 +60,7 @@ class HistoryScreen extends StatelessWidget {
                         ),
 
                         subtitle: Text(
-                            "${session["start"]}\n${session["end"]}",
+                            "${formatTime(session["start"])} - ${formatTime(session["end"])}",
                         ),
 
                         );
@@ -77,4 +78,21 @@ class HistoryScreen extends StatelessWidget {
       ),
     );
   }
+
+    String formatDate(String date) {
+        final parsedDate = DateTime.parse(date);
+
+        return DateFormat(
+            'dd MMM yyyy',
+        ).format(parsedDate);
+    }
+
+    String formatTime(String dateTime) {
+        final parsedDateTime =
+            DateTime.parse(dateTime);
+
+        return DateFormat(
+            'hh:mm a',
+        ).format(parsedDateTime);
+    }
 }

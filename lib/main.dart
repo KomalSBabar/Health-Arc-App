@@ -5,6 +5,7 @@ import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'history_screen.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const MyApp());
@@ -257,8 +258,10 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
                     title: Text(
                       "${session["steps"]} Steps",
                     ),
+
                     subtitle: Text(
-                      "${session["start"]}\n${session["end"]}",
+                      "${formatTime(session["start"])} - "
+                      "${formatTime(session["end"])}",
                     ),
                   );
                 },
@@ -329,6 +332,15 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
 
       await saveSteps();
     }
+  }
+
+  String formatTime(String dateTime) {
+    final parsedDateTime =
+        DateTime.parse(dateTime);
+
+    return DateFormat(
+      'hh:mm a',
+    ).format(parsedDateTime);
   }
 
 }
