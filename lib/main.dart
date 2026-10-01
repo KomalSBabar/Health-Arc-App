@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'history_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,8 +38,9 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
 
   DateTime? sessionStartTime;
   List<Map<String, dynamic>> todaySessions = [];
-
+  List<Map<String, dynamic>> history = [];
   bool isCounting = false;
+  String savedDate = "";
 
   @override
   void initState() {
@@ -53,6 +55,12 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
     String sessionData =
         prefs.getString('todaySessions') ?? '[]';
 
+    String historyData =
+        prefs.getString('history') ?? '[]';
+
+    savedDate = prefs.getString('savedDate') ?? '';    
+    // savedDate = "2026-09-30";
+
     setState(() {
 
       todaySteps =
@@ -66,7 +74,22 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
             jsonDecode(sessionData),
           );
 
+      history =
+        List<Map<String, dynamic>>.from(
+          jsonDecode(historyData),
+        );
+
     });
+
+    if (savedDate.isEmpty) {
+
+      savedDate = getTodayDate();
+
+      await saveSteps();
+
+    }
+
+    await checkForNewDay();
 
   }
 
@@ -75,6 +98,8 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
 
     await prefs.setInt('todaySteps', todaySteps);
     await prefs.setBool('isCounting', isCounting);
+    await prefs.setString('savedDate', savedDate);
+    await prefs.setString('history', jsonEncode(history),);
 
     await prefs.setString(
       'todaySessions',
@@ -199,7 +224,8 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
               style: const TextStyle(
                 fontSize: 18,
               ),
-            ),
+            ),  
+            
 
             const SizedBox(height: 40),
 
@@ -239,6 +265,27 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
               ),
             ),
 
+            ElevatedButton(
+              onPressed: () {
+
+                Navigator.push(
+                  context,
+
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        HistoryScreen(
+                      history: history,
+                    ),
+                  ),
+                );
+
+              },
+
+              child: const Text(
+                "View History",
+              ),
+            ),
+
 
 
             const SizedBox(height: 10),
@@ -252,4 +299,36 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
       ),
     );
   }
+
+
+  // helper method 
+
+  String getTodayDate() {
+   final now = DateTime.now();
+    return  "${now.year}-${now.month}-${now.day}";
+  }
+
+  Future<void> checkForNewDay() async {
+
+    String today = getTodayDate();
+
+    if (savedDate.isNotEmpty &&
+        savedDate != today) {
+
+      history.add({
+        "date": savedDate,
+        "totalSteps": todaySteps,
+        "sessions": todaySessions,
+      });
+
+      todaySteps = 0;
+
+      todaySessions = [];
+
+      savedDate = today;
+
+      await saveSteps();
+    }
+  }
+
 }
