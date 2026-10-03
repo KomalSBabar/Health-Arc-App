@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'history_screen.dart';
 import 'package:intl/intl.dart';
+import 'theme/app_colors.dart';
 
 void main() {
   runApp(const MyApp());
@@ -192,57 +193,149 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              "Today's Steps",
-              style: TextStyle(
-                fontSize: 24,
+
+             Card(
+                margin: const EdgeInsets.all(16),
+
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+
+                  child: Column(
+                    children: [
+
+                      const Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
+                        children: [
+
+                          Icon(
+                            Icons.directions_walk,
+                            size: 30,
+                          ),
+
+                          SizedBox(width: 10),
+
+                          Text(
+                            "Today's Steps",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 25),
+
+                      Text(
+                        NumberFormat(
+                          '#,###',
+                        ).format(todaySteps),
+
+                        style: const TextStyle(
+                          fontSize: 55,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+
+                        decoration: BoxDecoration(
+                          color: isCounting
+                              ? Colors.green.shade100
+                              : Colors.red.shade100,
+
+                          borderRadius:
+                              BorderRadius.circular(20),
+                        ),
+
+                        child: Text(
+                          isCounting
+                              ? "Counting..."
+                              : "Stopped",
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Text(
-              "$todaySteps",
-              style: const TextStyle(
-                fontSize: 60,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Text(
-              isCounting ? "Counting..." : "Stopped",
-              style: const TextStyle(
-                fontSize: 18,
-              ),
-            ),
 
             const SizedBox(height: 10),
 
-            Text(
-              "Current Session: $sessionSteps",
-              style: const TextStyle(
-                fontSize: 18,
+            Card(
+              margin: const EdgeInsets.symmetric(
+                horizontal: 16,
               ),
-            ),  
+
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+
+                child: Column(
+                  children: [
+
+                    const Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
+                      children: [
+
+                        Icon(
+                          Icons.timer,
+                        ),
+
+                        SizedBox(width: 8),
+
+                        Text(
+                          "Current Session",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    Text(
+                      "$sessionSteps Steps",
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                  ],
+                ),
+              ),
+            ),
             
 
-            const SizedBox(height: 40),
-
-            ElevatedButton(
-              onPressed: startCounting,
-              child: const Text("START"),
-            ),
 
             const SizedBox(height: 30),
 
-            const Text(
-              "Today's Sessions",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+            const Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                ),
+
+                child: Align(
+                  alignment: Alignment.centerLeft,
+
+                  child: Text(
+                    "Today's Sessions",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
             ),
 
             const SizedBox(height: 10),
@@ -254,16 +347,33 @@ class _HomePageState extends State<HomePage> {
 
                   final session = todaySessions[index];
 
-                  return ListTile(
-                    title: Text(
-                      "${session["steps"]} Steps",
-                    ),
+                  return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
 
-                    subtitle: Text(
-                      "${formatTime(session["start"])} - "
-                      "${formatTime(session["end"])}",
-                    ),
-                  );
+                      child: ListTile(
+
+                        leading: const CircleAvatar(
+                          child: Icon(
+                            Icons.directions_walk,
+                          ),
+                        ),
+
+                        title: Text(
+                          "${session["steps"]} Steps",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        subtitle: Text(
+                          "${formatTime(session["start"])} - "
+                          "${formatTime(session["end"])}",
+                        ),
+                      ),
+                    );
                 },
               ),
             ),
@@ -272,9 +382,56 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 10),
 
-            ElevatedButton(
-              onPressed: stopCounting,
-              child: const Text("STOP"),
+           Row(
+              children: [
+
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: startCounting,
+
+                    icon: const Icon(
+                      Icons.play_arrow,
+                    ),
+
+                    label: const Text(
+                      "START",
+                    ),
+
+                    style:
+                        ElevatedButton.styleFrom(
+                      backgroundColor:
+                          AppColors.primary,
+                      foregroundColor:
+                          Colors.white,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: stopCounting,
+
+                    icon: const Icon(
+                      Icons.stop,
+                    ),
+
+                    label: const Text(
+                      "STOP",
+                    ),
+
+                    style:
+                        ElevatedButton.styleFrom(
+                      backgroundColor:
+                          AppColors.danger,
+                      foregroundColor:
+                          Colors.white,
+                    ),
+                  ),
+                ),
+
+              ],
             ),
           ],
         ),
