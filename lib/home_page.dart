@@ -185,10 +185,19 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Step Counter"),
-        centerTitle: true,
-      ),
+      // appBar: AppBar(
+      //   title: const Text("Step Counter"),
+      //   centerTitle: true,
+
+      //   // leading: Builder(
+      //   //   builder: (context) => IconButton(
+      //   //     icon:const Icon(Icons.menu),
+      //   //     onPressed: () {
+      //   //       Scaffold.of(context).openDrawer();
+      //   //     },
+      //   //   ),
+      //   // ),
+      // ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -438,7 +447,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
 
   // helper method 
 

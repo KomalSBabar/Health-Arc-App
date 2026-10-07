@@ -44,9 +44,9 @@ class HistoryScreen extends StatefulWidget {
         Widget build(BuildContext context) {
 
             return Scaffold(
-            appBar: AppBar(
-                title: const Text("History"),
-            ),
+            // appBar: AppBar(
+            //     title: const Text("History"),
+            // ),
 
             body: ListView.builder(
                 itemCount: history.length,
@@ -64,15 +64,26 @@ class HistoryScreen extends StatefulWidget {
 
                         child: ExpansionTile(
 
-                            title: Text(
-                            formatDate(day["date"]),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                            ),
+                            title: Row(
+                                children: [
+                                    const Icon(
+                                    Icons.calendar_today,
+                                    size: 20,
+                                    ),
+
+                                    const SizedBox(width: 10),
+
+                                    Text(
+                                    formatDate(day["date"]),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                    ),
+                                    ),
+                                ],
                             ),
 
                             subtitle: Text(
-                            "${day["totalSteps"]} Steps",
+                            "${day["totalSteps"]} Steps • ${sessions.length} Sessions",
                             ),
 
                             children: [
