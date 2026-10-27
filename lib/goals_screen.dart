@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme/app_colors.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -12,176 +14,214 @@ class GoalsScreen extends StatefulWidget {
 class _GoalsScreenState
     extends State<GoalsScreen> {
 
-  List<String> goals = [];
+      List<String> goals = [];
 
-  void addGoal() {
+      void addGoal() {
 
-    TextEditingController controller =
-        TextEditingController();
+        TextEditingController controller =
+            TextEditingController();
 
-    showDialog(
-      context: context,
+        showDialog(
+          context: context,
 
-      builder: (context) {
+          builder: (context) {
 
-        return AlertDialog(
+            return AlertDialog(
 
-          title: const Text(
-            "Add Goal",
-          ),
-
-          content: TextField(
-            controller: controller,
-
-            decoration:
-                const InputDecoration(
-              hintText:
-                  "Enter Goal",
-            ),
-          ),
-
-          actions: [
-
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-
-              child: const Text(
-                "Cancel",
+              title: const Text(
+                "Add Goal",
               ),
-            ),
 
-            ElevatedButton(
-              onPressed: () {
+              content: TextField(
+                controller: controller,
 
-                if (controller.text
-                    .trim()
-                    .isNotEmpty) {
-
-                  setState(() {
-
-                    goals.add(
-                      controller.text.trim(),
-                    );
-
-                  });
-                }
-
-                Navigator.pop(context);
-
-              },
-
-              child: const Text(
-                "Save",
-              ),
-            ),
-
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-
-    return Scaffold(
-
-      floatingActionButton:
-          FloatingActionButton(
-
-        backgroundColor:
-            AppColors.primary,
-
-        foregroundColor:
-            Colors.white,
-
-        onPressed: addGoal,
-
-        child: const Icon(
-          Icons.add,
-        ),
-
-      ),
-
-      body: SafeArea(
-
-        child: Padding(
-          padding:
-              const EdgeInsets.all(16),
-
-          child: Column(
-
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-
-            children: [
-
-              const Text(
-                "Goals",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight:
-                      FontWeight.bold,
+                decoration:
+                    const InputDecoration(
+                  hintText:
+                      "Enter Goal",
                 ),
               ),
 
-              const SizedBox(
-                height: 15,
-              ),
+              actions: [
 
-              Expanded(
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
 
-                child: goals.isEmpty
+                  child: const Text(
+                    "Cancel",
+                  ),
+                ),
 
-                    ? const Center(
-                        child: Text(
-                          "No Goals Yet",
-                          style: TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      )
+                ElevatedButton(
+                  onPressed: () {
 
-                    : ListView.builder(
+                    if (controller.text
+                        .trim()
+                        .isNotEmpty) {
 
-                        itemCount:
-                            goals.length,
+                      setState(() {
 
-                        itemBuilder:
-                            (context, index) {
+                        goals.add(
+                          controller.text.trim(),
+                        );
 
-                          return Card(
+                      });
 
-                            margin:
-                                const EdgeInsets.only(
-                              bottom: 10,
-                            ),
+                      saveGoals();
 
-                            child: ListTile(
+                    }
 
-                              leading:
-                                  const CircleAvatar(
-                                child: Icon(
-                                  Icons.flag,
-                                ),
-                              ),
+                    Navigator.pop(context);
 
-                              title: Text(
-                                goals[index],
-                              ),
+                  },
 
-                            ),
-                          );
-                        },
-                      ),
-              ),
+                  child: const Text(
+                    "Save",
+                  ),
+                ),
 
-            ],
+              ],
+            );
+          },
+        );
+      }
+
+      Future<void> loadGoals() async {
+
+        final prefs =
+            await SharedPreferences.getInstance();
+
+        String goalData =
+            prefs.getString('goals') ?? '[]';
+
+        setState(() {
+
+          goals =
+              List<String>.from(
+            jsonDecode(goalData),
+          );
+
+        });
+      }
+
+      Future<void> saveGoals() async {
+
+        final prefs =
+            await SharedPreferences.getInstance();
+
+        await prefs.setString(
+          'goals',
+          jsonEncode(goals),
+        );
+      }
+
+      @override
+      void initState() {
+        super.initState();
+        loadGoals();
+      }
+
+      @override
+      Widget build(BuildContext context) {
+
+        return Scaffold(
+
+          floatingActionButton:
+              FloatingActionButton(
+
+            backgroundColor:
+                AppColors.primary,
+
+            foregroundColor:
+                Colors.white,
+
+            onPressed: addGoal,
+
+            child: const Icon(
+              Icons.add,
+            ),
+
           ),
-        ),
-      ),
-    );
-  }
+
+          body: SafeArea(
+
+            child: Padding(
+              padding:
+                  const EdgeInsets.all(16),
+
+              child: Column(
+
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                children: [
+
+                  const Text(
+                    "Goals",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight:
+                          FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 15,
+                  ),
+
+                  Expanded(
+
+                    child: goals.isEmpty
+
+                        ? const Center(
+                            child: Text(
+                              "No Goals Yet",
+                              style: TextStyle(
+                                fontSize: 16,
+                              ),
+                            ),
+                          )
+
+                        : ListView.builder(
+
+                            itemCount:
+                                goals.length,
+
+                            itemBuilder:
+                                (context, index) {
+
+                              return Card(
+
+                                margin:
+                                    const EdgeInsets.only(
+                                  bottom: 10,
+                                ),
+
+                                child: ListTile(
+
+                                  leading:
+                                      const CircleAvatar(
+                                    child: Icon(
+                                      Icons.flag,
+                                    ),
+                                  ),
+
+                                  title: Text(
+                                    goals[index],
+                                  ),
+
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+
+                ],
+              ),
+            ),
+          ),
+        );
+      }
 }
