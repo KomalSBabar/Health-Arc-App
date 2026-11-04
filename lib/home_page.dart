@@ -63,6 +63,15 @@ class _HomePageState extends State<HomePage> {
     savedDate = prefs.getString('savedDate') ?? '';    
     // savedDate = "2026-09-30";
 
+    sessionSteps = prefs.getInt('sessionSteps') ?? 0;
+    startSteps = prefs.getInt('startSteps') ?? 0;
+
+    final savedStartTime = prefs.getString('sessionStartTime');
+
+    if (savedStartTime != null) {
+      sessionStartTime = DateTime.tryParse(savedStartTime);
+    }
+
     setState(() {
 
       todaySteps =
@@ -93,6 +102,10 @@ class _HomePageState extends State<HomePage> {
 
     await checkForNewDay();
 
+    if (mounted && isCounting) {
+      resumeCounting();
+    }
+
   }
 
   Future<void> saveSteps() async {
@@ -101,8 +114,20 @@ class _HomePageState extends State<HomePage> {
     await prefs.setInt('todaySteps', todaySteps);
     await prefs.setBool('isCounting', isCounting);
     await prefs.setString('savedDate', savedDate);
-    await prefs.setString('history', jsonEncode(history),);
 
+    await prefs.setInt('sessionSteps', sessionSteps);
+    await prefs.setInt('startSteps', startSteps);
+
+    if (sessionStartTime != null) {
+       await prefs.setString(
+        'sessionStartTime',
+        sessionStartTime!.toIso8601String(),
+       );
+    } else {
+       await prefs.remove('sessionStartTime');
+    }
+
+    await prefs.setString('history', jsonEncode(history),);
     await prefs.setString(
       'todaySessions',
       jsonEncode(todaySessions),
@@ -111,39 +136,52 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> startCounting() async {
+    if (isCounting) return;
     final status =
         await Permission.activityRecognition.request();
 
     if (!status.isGranted) {
-      print("Permission Denied");
+      debugPrint("Permission Denied");
       return;
     }
 
     setState(() {
       isCounting = true;
+      sessionSteps = 0;
+      startSteps = 0;
       sessionStartTime = DateTime.now();
     });
 
     await saveSteps();
 
+    resumeCounting();
+  }
+
+  void resumeCounting() {
     _subscription?.cancel();
 
     _subscription = Pedometer.stepCountStream.listen(
-      (StepCount event) {
-        print("Sensor Steps: ${event.steps}");
+      (StepCount event) async {
+        if (!mounted) return;
 
+        // Set the baseline only if this is a new session
+        // that has not received its first sensor reading.
         if (startSteps == 0) {
           startSteps = event.steps;
         }
 
+        final currentSessionSteps = event.steps - startSteps;
+
         setState(() {
-          sessionSteps  = event.steps - startSteps;
+          sessionSteps = currentSessionSteps < 0
+              ? 0
+              : currentSessionSteps;
         });
 
-        saveSteps();
+        await saveSteps();
       },
       onError: (error) {
-        print("Sensor Error: $error");
+        debugPrint('Sensor Error: $error');
       },
     );
   }
@@ -167,6 +205,8 @@ class _HomePageState extends State<HomePage> {
       sessionSteps = 0;
 
       startSteps = 0;
+
+      sessionStartTime = null;
 
       isCounting = false;
 

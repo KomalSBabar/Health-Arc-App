@@ -96,7 +96,11 @@ class _MainNavigationState
           ),
       ),
 
-      body: pages[selectedIndex],
+      // body: pages[selectedIndex],
+      body: IndexedStack(
+        index: selectedIndex,
+        children: pages,
+      ),
 
       bottomNavigationBar: BottomNavigationBar(
 
