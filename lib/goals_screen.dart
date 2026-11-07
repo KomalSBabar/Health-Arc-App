@@ -54,7 +54,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       // Save everything in the new format.
       // await saveGoals();
     } catch (e) {
-      debugPrint('Error loading goals: $e');
+      debugPrint('Error loading tasks: $e');
     }
   }
 
@@ -75,12 +75,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Add Goal'),
+            title: const Text('Add Task'),
             content: TextField(
               controller: controller,
               autofocus: true,
               decoration: const InputDecoration(
-                hintText: 'Enter Goal',
+                hintText: 'Enter Task',
               ),
               onSubmitted: (value) {
                 Navigator.pop(dialogContext, value.trim());
@@ -155,7 +155,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
         goals.insert(index.clamp(0, goals.length), removedGoal);
       });
 
-      debugPrint('Error deleting goal: $e');
+      debugPrint('Error deleting tasks: $e');
     }
   }
 
@@ -169,7 +169,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete Goal?'),
+          title: const Text('Delete Task?'),
           content: Text(
              'Are you sure you want to delete "$goalTitle"?',
           ),
@@ -215,12 +215,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Edit Goal'),
+            title: const Text('Edit Task'),
             content: TextField(
               controller: controller,
               autofocus: true,
               decoration: const InputDecoration(
-                hintText: 'Enter goal title',
+                hintText: 'Enter task title',
               ),
               onSubmitted: (value) {
                 Navigator.pop(dialogContext, value.trim());
@@ -272,7 +272,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
         goals[index]['title'] = oldTitle;
       });
 
-      debugPrint('Error updating goal: $e');
+      debugPrint('Error updating tasks: $e');
     }
   }
 
@@ -293,7 +293,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Goals',
+                'Tasks',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -305,7 +305,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 child: goals.isEmpty
                     ? const Center(
                         child: Text(
-                          'No Goals Yet',
+                          'No Tasks Yet',
                           style: TextStyle(fontSize: 16),
                         ),
                       )
@@ -357,7 +357,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.edit_outlined),
-                                      tooltip: 'Edit goal',
+                                      tooltip: 'Edit task',
                                       onPressed: () {
                                         editGoal(originalIndex);
                                       },
@@ -367,7 +367,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                         Icons.delete_outline,
                                         color: Colors.red,
                                       ),
-                                      tooltip: 'Delete goal',
+                                      tooltip: 'Delete task',
                                       onPressed: () {
                                         confirmDeleteGoal(originalIndex);
                                       },
