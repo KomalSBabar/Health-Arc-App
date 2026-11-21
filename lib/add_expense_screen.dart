@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import '../models/expense_transaction.dart';
+import '../services/gpay_pdf_parser.dart';
+
 
 class AddExpenseScreen extends StatefulWidget {
+  int currentPage = 1;
+  int rowsPerPage = 10;
+
   final List<String> categories;
+  
+  final List<int> rowsPerPageOptions = [10, 25, 50];
 
   const AddExpenseScreen({
     super.key,
@@ -24,8 +34,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
   String? selectedCategory;
   String? selectedPdfName;
-  String? selectedPdfPath;
+  // String? selectedPdfPath;
+  String extractedPdfText = '';
+  List<ExpenseTransaction> extractedTransactions = [];
   PlatformFile? selectedPdfFile;
+  // List<int>? selectedPdfBytes;
+  
+  
 
   @override
   void initState() {
@@ -197,6 +212,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
     );
   }
 
+ 
   Widget buildOnlineTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -230,8 +246,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
             textAlign: TextAlign.center,
           ),
 
-         
-
           const SizedBox(height: 15),
 
           ElevatedButton.icon(
@@ -243,15 +257,122 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
             ),
           ),
 
+          const SizedBox(height: 15),
+
+          ElevatedButton.icon(
+            onPressed: extractPdfText,
+            icon: const Icon(Icons.document_scanner),
+            label: const Text('Extract Transactions'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.all(16),
+            ),
+          ),
+
           const SizedBox(height: 25),
 
-          const Divider(),
+          if (selectedPdfName != null)
+            Card(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.picture_as_pdf,
+                  color: Colors.red,
+                ),
+                title: Text(selectedPdfName!),
+                subtitle: const Text('PDF selected'),
+              ),
+            ),
 
-          const Text(
-            'Extracted transactions will appear here.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
+          if (extractedPdfText.isNotEmpty) ...[
+            const Divider(height: 30),
+
+            const Text(
+              'Extracted Transactions',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            if (extractedTransactions.isEmpty)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'No transactions could be identified. '
+                    'We may need to adjust the parser for your PDF format.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
+            else ...[
+              Text(
+                '${extractedTransactions.length} transactions found',
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              ...extractedTransactions.map((transaction) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: transaction.isIncome
+                          ? Colors.green.shade100
+                          : Colors.red.shade100,
+                      child: Icon(
+                        transaction.isIncome
+                            ? Icons.arrow_downward
+                            : Icons.arrow_upward,
+                        color: transaction.isIncome
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                    ),
+
+                    title: Text(
+                      transaction.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    subtitle: Text(
+                      '${transaction.category} • '
+                      '${transaction.date.day}/'
+                      '${transaction.date.month}/'
+                      '${transaction.date.year}\n'
+                      '${transaction.type}',
+                    ),
+
+                    isThreeLine: true,
+
+                    trailing: Text(
+                      '₹${transaction.amount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: transaction.isIncome
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+
+          
+          ] else
+            const Text(
+              'Extracted PDF text will appear here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
 
           const SizedBox(height: 15),
 
@@ -264,6 +385,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -304,19 +426,96 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
     );
   }
 
-    Future<void> pickPdfFile() async {
-        final PlatformFile? result = await FilePicker.pickFile(
-            type: FileType.custom,
-            allowedExtensions: ['pdf'],
+
+Future<void> extractPdfText() async {
+  try {
+    if (selectedPdfFile == null) {
+      showMessage('Please upload a PDF first.');
+      return;
+    }
+
+    final pdfBytes = await selectedPdfFile!.readAsBytes();
+    final document = PdfDocument(inputBytes: pdfBytes);
+
+    try {
+      final extractor = PdfTextExtractor(document);
+
+      final List<String> pages = [];
+
+      for (int i = 0; i < document.pages.count; i++) {
+        final text = extractor.extractText(
+          startPageIndex: i,
+          endPageIndex: i,
         );
 
-        if (result != null) {
-            setState(() {
-            selectedPdfName = result.name;
-            selectedPdfPath = result.path;
-            });
+        pages.add(text);
+      }
 
-            showMessage('PDF selected successfully!');
-        }
+      final result = pages.join('\n\n');
+      debugPrint('========== GPAY EXTRACTED TEXT ==========');
+debugPrint(result);
+debugPrint('========== END GPAY TEXT ==========');
+
+      if (result.trim().isEmpty) {
+        setState(() {
+          extractedPdfText = '';
+          extractedTransactions = [];
+        });
+
+        showMessage('No selectable text found in this PDF.');
+        return;
+      }
+
+      // Parse extracted text into transactions.
+      final transactions = GPayPdfParser.parse(result);
+
+      setState(() {
+        extractedPdfText = result;
+        extractedTransactions = transactions;
+      });
+
+      debugPrint(
+        'Total transactions found: ${transactions.length}',
+      );
+
+      if (transactions.isEmpty) {
+        showMessage(
+          'PDF text extracted, but no transactions were identified.',
+        );
+      } else {
+        showMessage(
+          '${transactions.length} transactions extracted successfully!',
+        );
+      }
+    } finally {
+      document.dispose();
     }
+  } catch (e) {
+    showMessage('PDF extraction failed: $e');
+    debugPrint('PDF extraction error: $e');
+  }
+}
+
+
+
+    Future<void> pickPdfFile() async {
+      final result = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result != null) {
+        setState(() {
+          selectedPdfFile = result;
+          selectedPdfName = result.name;
+          // selectedPdfPath = result.path;
+          // selectedPdfBytes = result.bytes;
+          extractedPdfText = '';
+          extractedTransactions = [];
+        });
+
+        showMessage('PDF uploaded successfully!');
+      }
+    }
+
 }
