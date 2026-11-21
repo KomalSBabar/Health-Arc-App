@@ -7,12 +7,9 @@ import '../services/gpay_pdf_parser.dart';
 
 
 class AddExpenseScreen extends StatefulWidget {
-  int currentPage = 1;
-  int rowsPerPage = 10;
 
   final List<String> categories;
   
-  final List<int> rowsPerPageOptions = [10, 25, 50];
 
   const AddExpenseScreen({
     super.key,
@@ -23,8 +20,9 @@ class AddExpenseScreen extends StatefulWidget {
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
 }
 
-class _AddExpenseScreenState extends State<AddExpenseScreen>
+class _AddExpenseScreenState extends State<AddExpenseScreen> 
     with SingleTickerProviderStateMixin {
+
         
   late TabController _tabController;
 
@@ -37,6 +35,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
   // String? selectedPdfPath;
   String extractedPdfText = '';
   List<ExpenseTransaction> extractedTransactions = [];
+  int currentPage = 1;
+  int rowsPerPage = 10;
+
+  final List<int> rowsPerPageOptions = [10, 25, 50];
   PlatformFile? selectedPdfFile;
   // List<int>? selectedPdfBytes;
   
@@ -306,7 +308,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                   ),
                 ),
               )
+            
             else ...[
+              // Total transaction count
               Text(
                 '${extractedTransactions.length} transactions found',
                 style: const TextStyle(
@@ -315,57 +319,159 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 15),
 
-              ...extractedTransactions.map((transaction) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: transaction.isIncome
-                          ? Colors.green.shade100
-                          : Colors.red.shade100,
-                      child: Icon(
-                        transaction.isIncome
-                            ? Icons.arrow_downward
-                            : Icons.arrow_upward,
-                        color: transaction.isIncome
-                            ? Colors.green
-                            : Colors.red,
+              // Pagination calculations
+              Builder(
+                builder: (context) {
+                  final int totalTransactions = extractedTransactions.length;
+
+                  final int totalPages =
+                      (totalTransactions / rowsPerPage).ceil();
+
+                  final int startIndex = (currentPage - 1) * rowsPerPage;
+
+                  final int endIndex =
+                      (startIndex + rowsPerPage).clamp(0, totalTransactions);
+
+                  final pageTransactions =
+                      extractedTransactions.sublist(startIndex, endIndex);
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Rows per page selector
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Rows per page:',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+
+                          DropdownButton<int>(
+                            value: rowsPerPage,
+                            items: rowsPerPageOptions.map((value) {
+                              return DropdownMenuItem<int>(
+                                value: value,
+                                child: Text('$value'),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  rowsPerPage = value;
+                                  currentPage = 1;
+                                });
+                              }
+                            },
+                          ),
+                        ],
                       ),
-                    ),
 
-                    title: Text(
-                      transaction.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
+                      Text(
+                        'Showing ${startIndex + 1} to $endIndex '
+                        'of $totalTransactions transactions',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
 
-                    subtitle: Text(
-                      '${transaction.category} • '
-                      '${transaction.date.day}/'
-                      '${transaction.date.month}/'
-                      '${transaction.date.year}\n'
-                      '${transaction.type}',
-                    ),
+                      const SizedBox(height: 10),
 
-                    isThreeLine: true,
+                      // Transaction cards for current page
+                      ...pageTransactions.map((transaction) {
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: transaction.isIncome
+                                  ? Colors.green.shade100
+                                  : Colors.red.shade100,
+                              child: Icon(
+                                transaction.isIncome
+                                    ? Icons.arrow_downward
+                                    : Icons.arrow_upward,
+                                color: transaction.isIncome
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            ),
 
-                    trailing: Text(
-                      '₹${transaction.amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: transaction.isIncome
-                            ? Colors.green
-                            : Colors.red,
+                            title: Text(
+                              transaction.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+
+                            subtitle: Text(
+                              '${transaction.category} • '
+                              '${transaction.date.day}/'
+                              '${transaction.date.month}/'
+                              '${transaction.date.year}\n'
+                              '${transaction.type}',
+                            ),
+
+                            isThreeLine: true,
+
+                            trailing: Text(
+                              '₹${transaction.amount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: transaction.isIncome
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(height: 15),
+
+                      // Previous and Next buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: currentPage > 1
+                                ? () {
+                                    setState(() {
+                                      currentPage--;
+                                    });
+                                  }
+                                : null,
+                            icon: const Icon(Icons.chevron_left),
+                            label: const Text('Previous'),
+                          ),
+
+                          Text(
+                            'Page $currentPage of $totalPages',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+
+                          OutlinedButton.icon(
+                            onPressed: currentPage < totalPages
+                                ? () {
+                                    setState(() {
+                                      currentPage++;
+                                    });
+                                  }
+                                : null,
+                            icon: const Text('Next'),
+                            label: const Icon(Icons.chevron_right),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                );
-              }),
+                    ],
+                  );
+                },
+              ),
             ],
-
           
           ] else
             const Text(
@@ -453,8 +559,8 @@ Future<void> extractPdfText() async {
 
       final result = pages.join('\n\n');
       debugPrint('========== GPAY EXTRACTED TEXT ==========');
-debugPrint(result);
-debugPrint('========== END GPAY TEXT ==========');
+      debugPrint(result);
+      debugPrint('========== END GPAY TEXT ==========');
 
       if (result.trim().isEmpty) {
         setState(() {
