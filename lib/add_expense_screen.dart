@@ -107,6 +107,134 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
     );
   }
 
+
+  Future<void> editTransaction(ExpenseTransaction transaction) async {
+    final titleEditController = TextEditingController(
+      text: transaction.title,
+    );
+
+    final descriptionEditController = TextEditingController(
+      text: transaction.description,
+    );
+
+    final availableCategories = widget.categories.toSet().toList();
+
+    if (!availableCategories.contains(transaction.category)) {
+      availableCategories.add(transaction.category);
+    }
+
+    String editedCategory = transaction.category;
+
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit Transaction'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleEditController,
+                      decoration: const InputDecoration(
+                        labelText: 'Transaction Title',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      initialValue: editedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(),
+                      ),
+                      // items: widget.categories.map((category) {
+                      items: availableCategories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(category),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() {
+                            editedCategory = value;
+                          });
+                        }
+                      },
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    TextField(
+                      controller: descriptionEditController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Text(
+                      'Amount: ₹${transaction.amount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext, false);
+                  },
+                  child: const Text('Cancel'),
+                ),
+
+                ElevatedButton(
+                  onPressed: () {
+                    if (titleEditController.text.trim().isEmpty) {
+                      return;
+                    }
+
+                    Navigator.pop(dialogContext, true);
+                  },
+                  child: const Text('Save Changes'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldSave == true && mounted) {
+      final index = extractedTransactions.indexOf(transaction);
+
+      if (index != -1) {
+        setState(() {
+          extractedTransactions[index] = transaction.copyWith(
+            title: titleEditController.text.trim(),
+            category: editedCategory,
+            description: descriptionEditController.text.trim(),
+          );
+        });
+
+        showMessage('Transaction updated successfully!');
+      }
+    }
+
+    titleEditController.dispose();
+    descriptionEditController.dispose();
+  }
+
   Widget buildManualTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -214,7 +342,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
     );
   }
 
- 
   Widget buildOnlineTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -274,13 +401,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
           if (selectedPdfName != null)
             Card(
+              // child: ListTile(
+              //   leading: const Icon(
+              //     Icons.picture_as_pdf,
+              //     color: Colors.red,
+              //   ),
+              //   title: Text(selectedPdfName!),
+              //   subtitle: const Text('PDF selected'),
+              // ),
               child: ListTile(
-                leading: const Icon(
-                  Icons.picture_as_pdf,
-                  color: Colors.red,
+                minVerticalPadding: 8,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
                 ),
-                title: Text(selectedPdfName!),
-                subtitle: const Text('PDF selected'),
               ),
             ),
 
@@ -416,15 +550,75 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
                             isThreeLine: true,
 
-                            trailing: Text(
-                              '₹${transaction.amount.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: transaction.isIncome
-                                    ? Colors.green
-                                    : Colors.red,
+                            // trailing: Text(
+                            //   '₹${transaction.amount.toStringAsFixed(2)}',
+                            //   style: TextStyle(
+                            //     fontWeight: FontWeight.bold,
+                            //     color: transaction.isIncome
+                            //         ? Colors.green
+                            //         : Colors.red,
+                            //   ),
+                            // ),
+
+                            
+                            
+                            trailing: SizedBox(
+                              width: 140,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      '₹${transaction.amount.toStringAsFixed(2)}',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: transaction.isIncome
+                                            ? Colors.green
+                                            : Colors.red,
+                                      ),
+                                    ),
+                                  ),
+
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 36,
+                                      minHeight: 36,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.blue,
+                                      size: 20,
+                                    ),
+                                    tooltip: 'Edit Transaction',
+                                    onPressed: () {
+                                      editTransaction(transaction);
+                                    },
+                                  ),
+
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 36,
+                                      minHeight: 36,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                      size: 20,
+                                    ),
+                                    tooltip: 'Delete Transaction',
+                                    onPressed: () {
+                                      deleteTransaction(transaction);
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
+
+
+
                           ),
                         );
                       }),
@@ -492,7 +686,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -533,76 +726,74 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
   }
 
 
-Future<void> extractPdfText() async {
-  try {
-    if (selectedPdfFile == null) {
-      showMessage('Please upload a PDF first.');
-      return;
-    }
-
-    final pdfBytes = await selectedPdfFile!.readAsBytes();
-    final document = PdfDocument(inputBytes: pdfBytes);
-
+  Future<void> extractPdfText() async {
     try {
-      final extractor = PdfTextExtractor(document);
-
-      final List<String> pages = [];
-
-      for (int i = 0; i < document.pages.count; i++) {
-        final text = extractor.extractText(
-          startPageIndex: i,
-          endPageIndex: i,
-        );
-
-        pages.add(text);
-      }
-
-      final result = pages.join('\n\n');
-      debugPrint('========== GPAY EXTRACTED TEXT ==========');
-      debugPrint(result);
-      debugPrint('========== END GPAY TEXT ==========');
-
-      if (result.trim().isEmpty) {
-        setState(() {
-          extractedPdfText = '';
-          extractedTransactions = [];
-        });
-
-        showMessage('No selectable text found in this PDF.');
+      if (selectedPdfFile == null) {
+        showMessage('Please upload a PDF first.');
         return;
       }
 
-      // Parse extracted text into transactions.
-      final transactions = GPayPdfParser.parse(result);
+      final pdfBytes = await selectedPdfFile!.readAsBytes();
+      final document = PdfDocument(inputBytes: pdfBytes);
 
-      setState(() {
-        extractedPdfText = result;
-        extractedTransactions = transactions;
-      });
+      try {
+        final extractor = PdfTextExtractor(document);
 
-      debugPrint(
-        'Total transactions found: ${transactions.length}',
-      );
+        final List<String> pages = [];
 
-      if (transactions.isEmpty) {
-        showMessage(
-          'PDF text extracted, but no transactions were identified.',
+        for (int i = 0; i < document.pages.count; i++) {
+          final text = extractor.extractText(
+            startPageIndex: i,
+            endPageIndex: i,
+          );
+
+          pages.add(text);
+        }
+
+        final result = pages.join('\n\n');
+        debugPrint('========== GPAY EXTRACTED TEXT ==========');
+        debugPrint(result);
+        debugPrint('========== END GPAY TEXT ==========');
+
+        if (result.trim().isEmpty) {
+          setState(() {
+            extractedPdfText = '';
+            extractedTransactions = [];
+          });
+
+          showMessage('No selectable text found in this PDF.');
+          return;
+        }
+
+        // Parse extracted text into transactions.
+        final transactions = GPayPdfParser.parse(result);
+
+        setState(() {
+          extractedPdfText = result;
+          extractedTransactions = transactions;
+        });
+
+        debugPrint(
+          'Total transactions found: ${transactions.length}',
         );
-      } else {
-        showMessage(
-          '${transactions.length} transactions extracted successfully!',
-        );
+
+        if (transactions.isEmpty) {
+          showMessage(
+            'PDF text extracted, but no transactions were identified.',
+          );
+        } else {
+          showMessage(
+            '${transactions.length} transactions extracted successfully!',
+          );
+        }
+      } finally {
+        document.dispose();
       }
-    } finally {
-      document.dispose();
+    } catch (e) {
+      showMessage('PDF extraction failed: $e');
+      debugPrint('PDF extraction error: $e');
     }
-  } catch (e) {
-    showMessage('PDF extraction failed: $e');
-    debugPrint('PDF extraction error: $e');
   }
-}
-
-
 
     Future<void> pickPdfFile() async {
       final result = await FilePicker.pickFile(
@@ -623,5 +814,58 @@ Future<void> extractPdfText() async {
         showMessage('PDF uploaded successfully!');
       }
     }
+
+
+Future<void> deleteTransaction(ExpenseTransaction transaction) async {
+  final shouldDelete = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Delete Transaction'),
+        content: Text(
+          'Are you sure you want to delete "${transaction.title}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext, false);
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (shouldDelete == true && mounted) {
+    setState(() {
+      extractedTransactions.remove(transaction);
+
+      final totalPages =
+          (extractedTransactions.length / rowsPerPage).ceil();
+
+      if (currentPage > totalPages && totalPages > 0) {
+        currentPage = totalPages;
+      }
+
+      if (extractedTransactions.isEmpty) {
+        currentPage = 1;
+      }
+    });
+
+    showMessage('Transaction deleted successfully!');
+  }
+}
+
 
 }

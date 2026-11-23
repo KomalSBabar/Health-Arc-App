@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'add_expense_screen.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -303,6 +305,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
         category['amount'] = (category['amount'] as double) + amount;
     });
+    await saveTransactions();
 
     showMessage('Expense added successfully!');
    }
@@ -612,4 +615,54 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       ),
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+    loadTransactions();
+  }
+
+  Future<void> loadTransactions() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final savedData = prefs.getString('expense_transactions');
+
+    if (savedData != null) {
+      final List<dynamic> decodedData = jsonDecode(savedData);
+
+      setState(() {
+        transactions
+          ..clear()
+          ..addAll(
+            decodedData.map((item) {
+              return {
+                ...Map<String, dynamic>.from(item),
+                'amount': (item['amount'] as num).toDouble(),
+                'date': DateTime.parse(item['date']),
+              };
+            }),
+          );
+      });
+    } else {
+      // First launch: save the existing sample transactions.
+      await saveTransactions();
+    }
+  }
+
+  Future<void> saveTransactions() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final dataToSave = transactions.map((transaction) {
+      return {
+        ...transaction,
+        'date': (transaction['date'] as DateTime).toIso8601String(),
+      };
+    }).toList();
+
+    await prefs.setString(
+      'expense_transactions',
+      jsonEncode(dataToSave),
+    );
+  }
+
 }

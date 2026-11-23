@@ -64,4 +64,24 @@ class ExpenseTransaction {
       accountNumber: json['accountNumber'],
     );
   }
+
+  ExpenseTransaction copyWith({
+    String? title,
+    String? category,
+    String? description,
+  }) {
+    return ExpenseTransaction(
+      id: id,
+      title: title ?? this.title,
+      category: category ?? this.category,
+      description: description ?? this.description,
+      amount: amount,
+      type: type,
+      date: date,
+      transactionId: transactionId,
+      bankName: bankName,
+      accountNumber: accountNumber,
+    );
+  }
+
 }
