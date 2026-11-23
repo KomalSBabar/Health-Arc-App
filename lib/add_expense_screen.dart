@@ -109,13 +109,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
 
   Future<void> editTransaction(ExpenseTransaction transaction) async {
-    final titleEditController = TextEditingController(
-      text: transaction.title,
-    );
-
-    final descriptionEditController = TextEditingController(
-      text: transaction.description,
-    );
+    String editedTitle = transaction.title;
+    String editedDescription = transaction.description;
 
     final availableCategories = widget.categories.toSet().toList();
 
@@ -136,23 +131,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextField(
-                      controller: titleEditController,
+                    TextFormField(
+                      initialValue: editedTitle,
                       decoration: const InputDecoration(
                         labelText: 'Transaction Title',
                         border: OutlineInputBorder(),
                       ),
+                      onChanged: (value) {
+                        editedTitle = value;
+                      },
                     ),
 
                     const SizedBox(height: 15),
 
                     DropdownButtonFormField<String>(
-                      initialValue: editedCategory,
+                      value: editedCategory,
                       decoration: const InputDecoration(
                         labelText: 'Category',
                         border: OutlineInputBorder(),
                       ),
-                      // items: widget.categories.map((category) {
                       items: availableCategories.map((category) {
                         return DropdownMenuItem<String>(
                           value: category,
@@ -170,13 +167,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
                     const SizedBox(height: 15),
 
-                    TextField(
-                      controller: descriptionEditController,
+                    TextFormField(
+                      initialValue: editedDescription,
                       maxLines: 3,
                       decoration: const InputDecoration(
                         labelText: 'Description',
                         border: OutlineInputBorder(),
                       ),
+                      onChanged: (value) {
+                        editedDescription = value;
+                      },
                     ),
 
                     const SizedBox(height: 10),
@@ -200,7 +200,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
                 ElevatedButton(
                   onPressed: () {
-                    if (titleEditController.text.trim().isEmpty) {
+                    if (editedTitle.trim().isEmpty) {
                       return;
                     }
 
@@ -221,19 +221,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
       if (index != -1) {
         setState(() {
           extractedTransactions[index] = transaction.copyWith(
-            title: titleEditController.text.trim(),
+            title: editedTitle.trim(),
             category: editedCategory,
-            description: descriptionEditController.text.trim(),
+            description: editedDescription.trim(),
           );
         });
 
         showMessage('Transaction updated successfully!');
       }
     }
-
-    titleEditController.dispose();
-    descriptionEditController.dispose();
   }
+
 
   Widget buildManualTab() {
     return SingleChildScrollView(
