@@ -9,11 +9,12 @@ import '../services/gpay_pdf_parser.dart';
 class AddExpenseScreen extends StatefulWidget {
 
   final List<String> categories;
-  
+  final List<Map<String, dynamic>> existingTransactions;
 
   const AddExpenseScreen({
     super.key,
     required this.categories,
+    required this.existingTransactions,
   });
 
   @override
@@ -341,6 +342,89 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
   }
 
   Widget buildOnlineTab() {
+
+
+    String normalizeTitle(String title) {
+      return title.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    }
+
+    DateTime parseTransactionDate(dynamic value) {
+      if (value is DateTime) return value;
+      return DateTime.parse(value.toString());
+    }
+
+    bool isDuplicate(ExpenseTransaction candidate, Map<String, dynamic> saved) {
+      final candidateId = candidate.transactionId?.trim() ?? '';
+      final savedId = saved['transactionId']?.toString().trim() ?? '';
+
+      // Prefer UPI transaction ID when both transactions have one.
+      if (candidateId.isNotEmpty && savedId.isNotEmpty) {
+        return candidateId == savedId;
+      }
+
+      // Otherwise compare date, amount, direction, and normalized title.
+      final savedDate = parseTransactionDate(saved['date']);
+
+      final savedDirection =
+          saved['transactionType'] ??
+          (saved['type'] == 'Received' ? 'Received' : 'Paid');
+
+      return candidate.date.year == savedDate.year &&
+          candidate.date.month == savedDate.month &&
+          candidate.date.day == savedDate.day &&
+          candidate.amount == (saved['amount'] as num).toDouble() &&
+          candidate.type == savedDirection &&
+          normalizeTitle(candidate.title) ==
+              normalizeTitle(saved['title']?.toString() ?? '');
+    }
+
+
+    final List<Map<String, dynamic>> previewNewTransactions = [];
+    int previewDuplicateCount = 0;
+
+    for (final candidate in extractedTransactions) {
+      final alreadySaved = widget.existingTransactions.any(
+        (saved) => isDuplicate(candidate, saved),
+      );
+
+      final alreadyInImport = previewNewTransactions.any(
+        (saved) => isDuplicate(candidate, saved),
+      );
+
+      if (alreadySaved || alreadyInImport) {
+        previewDuplicateCount++;
+        continue;
+      }
+
+      previewNewTransactions.add({
+        'id': candidate.id,
+        'title': candidate.title,
+        'category': candidate.category,
+        'description': candidate.description,
+        'amount': candidate.amount,
+        'type': 'Online',
+        'transactionType': candidate.type,
+        'date': candidate.date,
+        'transactionId': candidate.transactionId,
+        'bankName': candidate.bankName,
+        'accountNumber': candidate.accountNumber,
+      });
+    }
+
+    void submitOnlineTransactions() {
+      if (extractedTransactions.isEmpty) {
+        showMessage('No transactions available to submit.');
+        return;
+      }
+
+      Navigator.pop(context, {
+        'resultType': 'onlineImport',
+        'transactions': previewNewTransactions,
+        'newCount': previewNewTransactions.length,
+        'duplicateCount': previewDuplicateCount,
+      });
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -672,13 +756,93 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
               style: TextStyle(color: Colors.grey),
             ),
 
-          const SizedBox(height: 15),
+           
+          if (extractedTransactions.isNotEmpty) ...[
+            const SizedBox(height: 20),
 
-          const Text(
-            'After reviewing and editing the extracted transactions, '
-            'you will be able to submit them to your expense history.',
-            textAlign: TextAlign.center,
-          ),
+            // IMPORT SUMMARY
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Import Summary',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total extracted'),
+                        Text('${extractedTransactions.length}'),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('New transactions'),
+                        Text(
+                          '${previewNewTransactions.length}',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Duplicates'),
+                        Text(
+                          '$previewDuplicateCount',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // SUBMIT BUTTON
+            SizedBox(
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: submitOnlineTransactions,
+                icon: const Icon(Icons.save),
+                label: const Text(
+                  'Submit Transactions',
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 15),
+          
         ],
       ),
     );
@@ -812,6 +976,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
         showMessage('PDF uploaded successfully!');
       }
     }
+
 
 
 Future<void> deleteTransaction(ExpenseTransaction transaction) async {

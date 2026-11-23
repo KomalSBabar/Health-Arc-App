@@ -279,36 +279,102 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
+  
   Future<void> openAddExpenseScreen() async {
     final result = await Navigator.push<Map<String, dynamic>>(
-        context,
-        MaterialPageRoute(
+      context,
+      MaterialPageRoute(
         builder: (context) => AddExpenseScreen(
-            categories: categories
-                .map((category) => category['name'] as String)
-                .toList(),
+          categories: categories
+              .map((category) => category['name'] as String)
+              .toList(),
+          existingTransactions: transactions,
         ),
-        ),
+      ),
     );
 
     if (result == null || !mounted) return;
 
+    // ONLINE PDF IMPORT
+    if (result['resultType'] == 'onlineImport') {
+      final importedList =
+          result['transactions'] as List<dynamic>? ?? [];
+
+      final List<Map<String, dynamic>> newTransactions = [];
+
+      for (final item in importedList) {
+        final transaction = Map<String, dynamic>.from(item);
+
+        final dateValue = transaction['date'];
+
+        newTransactions.add({
+          ...transaction,
+          'amount': (transaction['amount'] as num).toDouble(),
+          'date': dateValue is DateTime
+              ? dateValue
+              : DateTime.parse(dateValue.toString()),
+          'type': 'Online',
+        });
+      }
+
+      setState(() {
+        transactions.insertAll(0, newTransactions);
+
+        for (final transaction in newTransactions) {
+          final transactionType =
+              transaction['transactionType'] ?? 'Paid';
+
+          // Only outgoing payments increase expense totals.
+          if (transactionType == 'Received') continue;
+
+          final categoryName =
+              transaction['category'] ?? 'Other';
+
+          final categoryIndex = categories.indexWhere(
+            (item) => item['name'] == categoryName,
+          );
+
+          if (categoryIndex != -1) {
+            categories[categoryIndex]['amount'] =
+                (categories[categoryIndex]['amount'] as double) +
+                (transaction['amount'] as double);
+          }
+        }
+      });
+
+      await saveTransactions();
+
+      final newCount = result['newCount'] ?? newTransactions.length;
+      final duplicateCount = result['duplicateCount'] ?? 0;
+
+      showMessage(
+        'Import completed! $newCount new transactions added, '
+        '$duplicateCount duplicates skipped.',
+      );
+
+      return;
+    }
+
+    // MANUAL EXPENSE
     setState(() {
-        transactions.insert(0, result);
+      transactions.insert(0, result);
 
-        final categoryName = result['category'];
-        final amount = result['amount'] as double;
+      final categoryName = result['category'];
+      final amount = result['amount'] as double;
 
-        final category = categories.firstWhere(
+      final category = categories.firstWhere(
         (item) => item['name'] == categoryName,
-        );
+      );
 
-        category['amount'] = (category['amount'] as double) + amount;
+      category['amount'] =
+          (category['amount'] as double) + amount;
     });
+
     await saveTransactions();
 
     showMessage('Expense added successfully!');
-   }
+  }
+
 
   Widget buildMonthSelector() {
     return Padding(
